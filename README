@@ -1,0 +1,56 @@
+# NeuroTetris
+
+NeuroTetris is a futuristic Tetris variant that adapts to your play style and psychological state in real time. It features quantum blocks, AI-driven adaptive difficulty, simulated biometrics, in-game IQ estimation, psychological profiling, and a hidden narrative about AI civilization communication.
+
+## Features
+
+- **AI-driven adaptive difficulty** that responds to stress and focus levels
+- **Quantum blocks** with superposition states for unique gameplay
+- **Biometric simulation** (stress/focus tracking)
+- **In-game IQ estimation** based on your performance and decision patterns
+- **Hidden narrative** revealed through play
+- **Energy-based special abilities** (gravity flip, time slow, block fragment)
+- **Psychological profiling** to analyze your decision patterns
+- **Future-ready** for VR, real biometric devices, and cloud collaboration
+
+## Controls
+
+- **A/D or Left/Right:** Move piece
+- **S or Down:** Soft drop
+- **W or Up:** Rotate piece
+- **Space:** Hard drop
+- **Q:** Toggle quantum state (for quantum blocks)
+- **P:** Pause
+- **R:** Use energy ability (cycle through: gravity flip, time slow, block fragment)
+
+## Requirements
+
+- Python 3.7+
+- [pygame](https://www.pygame.org/)
+- [numpy](https://numpy.org/)
+
+Install dependencies:
+```bash
+pip install pygame numpy
+```
+
+## Running the Game
+
+```bash
+python py
+```
+
+## Future Expansion
+
+- VR headset integration
+- Real biometric device connectivity
+- Brain-computer interfaces
+- Cloud-based collaborative gameplay
+
+## License
+
+MIT License
+
+---
+
+*Created by EmmyZ. Contributions and feedback welcome!*
