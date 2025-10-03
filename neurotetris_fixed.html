@@ -1,0 +1,1910 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeuroTetris - AI Gaming</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        @keyframes afrobeat-pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+        
+        @keyframes tribal-float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        @keyframes gradient-shift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        @keyframes ability-flash {
+            0%, 100% { box-shadow: 0 0 10px rgba(255, 215, 0, 0.5); }
+            50% { box-shadow: 0 0 30px rgba(255, 215, 0, 1); }
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(-45deg, #0a4d0a, #1a1a2e, #8b4513, #006400, #1a1a2e);
+            background-size: 400% 400%;
+            animation: gradient-shift 15s ease infinite;
+            color: white;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            position: relative;
+            transition: background 2s ease;
+        }
+        
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 255, 0, 0.03) 2px, rgba(0, 255, 0, 0.03) 4px),
+                repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(0, 255, 0, 0.03) 2px, rgba(0, 255, 0, 0.03) 4px);
+            pointer-events: none;
+        }
+        
+        .screen {
+            position: absolute;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            top: 0;
+            left: 0;
+            z-index: 10;
+            overflow-y: auto;
+        }
+        .hidden { display: none !important; }
+        
+        .loading-title { 
+            font-size: 56px; 
+            background: linear-gradient(45deg, #00ff00, #ffd700, #00ff00);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 30px;
+            font-weight: bold;
+            text-shadow: 0 0 30px rgba(0, 255, 0, 0.5);
+            animation: afrobeat-pulse 2s ease-in-out infinite;
+        }
+        
+        .loading-subtitle {
+            color: #ffd700;
+            font-size: 18px;
+            margin-bottom: 20px;
+            letter-spacing: 3px;
+        }
+        
+        .spinner { 
+            width: 60px; 
+            height: 60px; 
+            border: 5px solid transparent;
+            border-top-color: #00ff00;
+            border-right-color: #ffd700;
+            border-radius: 50%; 
+            animation: spin 1s linear infinite;
+        }
+        
+        .auth-title { 
+            font-size: 48px; 
+            background: linear-gradient(45deg, #00ff00, #ffd700, #00ff00);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+            font-weight: bold;
+            animation: afrobeat-pulse 2s ease-in-out infinite;
+        }
+        
+        .auth-subtitle {
+            color: #ffd700;
+            font-size: 14px;
+            margin-bottom: 30px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+        
+        .auth-container { 
+            background: linear-gradient(135deg, rgba(0, 50, 0, 0.9), rgba(20, 20, 40, 0.9));
+            border: 3px solid;
+            border-image: linear-gradient(45deg, #00ff00, #ffd700) 1;
+            border-radius: 20px; 
+            padding: 40px; 
+            max-width: 480px; 
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 255, 0, 0.3);
+            backdrop-filter: blur(10px);
+        }
+        
+        .tabs { 
+            display: flex; 
+            gap: 8px; 
+            border-bottom: 3px solid rgba(255, 215, 0, 0.3);
+            margin-bottom: 25px; 
+        }
+        
+        .tab { 
+            flex: 1; 
+            padding: 12px; 
+            background: transparent;
+            color: #888; 
+            border: none; 
+            cursor: pointer; 
+            font-size: 15px; 
+            font-weight: 700;
+            transition: all 0.3s;
+            position: relative;
+        }
+        
+        .tab.active { 
+            color: #ffd700;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+        }
+        
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -3px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #00ff00, #ffd700, #00ff00);
+        }
+        
+        .form { text-align: left; }
+        
+        .input { 
+            width: 100%; 
+            padding: 14px 18px; 
+            margin: 12px 0; 
+            background: rgba(0, 0, 0, 0.4);
+            border: 2px solid rgba(0, 255, 0, 0.3);
+            border-radius: 10px; 
+            color: white;
+            font-size: 15px;
+            transition: all 0.3s;
+        }
+        
+        .input:focus {
+            outline: none;
+            border-color: #ffd700;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+        }
+        
+        .btn { 
+            width: 100%; 
+            padding: 15px; 
+            margin: 12px 0; 
+            border-radius: 12px; 
+            font-size: 16px; 
+            font-weight: 700;
+            cursor: pointer; 
+            border: none; 
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .google-btn { 
+            background: linear-gradient(135deg, #4285f4, #34a853);
+            color: white;
+            box-shadow: 0 5px 15px rgba(66, 133, 244, 0.4);
+        }
+        
+        .google-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(66, 133, 244, 0.6);
+        }
+        
+        .guest-btn { 
+            background: rgba(255, 215, 0, 0.1);
+            color: #ffd700; 
+            border: 2px solid #ffd700;
+        }
+        
+        .guest-btn:hover {
+            background: rgba(255, 215, 0, 0.2);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(255, 215, 0, 0.4);
+        }
+        
+        .primary-btn { 
+            background: linear-gradient(135deg, #00ff00, #ffd700);
+            color: #000;
+            box-shadow: 0 5px 15px rgba(0, 255, 0, 0.4);
+        }
+        
+        .primary-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 255, 0, 0.6);
+        }
+        
+        .divider { 
+            text-align: center; 
+            margin: 25px 0; 
+            color: #888; 
+            font-size: 13px;
+            position: relative;
+        }
+        
+        .divider::before,
+        .divider::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: 40%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255, 215, 0, 0.5), transparent);
+        }
+        
+        .divider::before { left: 0; }
+        .divider::after { right: 0; }
+        
+        .info-box { 
+            margin-top: 20px; 
+            padding: 18px; 
+            background: rgba(0, 255, 0, 0.08);
+            border: 2px solid rgba(0, 255, 0, 0.3);
+            border-radius: 12px; 
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        
+        .warning-box { 
+            background: rgba(255, 100, 100, 0.1);
+            border-color: rgba(255, 100, 100, 0.4);
+        }
+        
+        .game-container { 
+            flex-direction: row; 
+            gap: 20px;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            max-width: 100vw;
+            padding: 60px 15px 15px 15px;
+        }
+        
+        canvas { 
+            border: 4px solid;
+            border-image: linear-gradient(45deg, #00ff00, #ffd700, #00ff00) 1;
+            background: linear-gradient(180deg, #000a00, #001100);
+            max-height: calc(100vh - 80px);
+            box-shadow: 0 10px 40px rgba(0, 255, 0, 0.3);
+            transition: background 2s ease, box-shadow 1s ease;
+        }
+        
+        .ui-panel { 
+            background: linear-gradient(135deg, rgba(0, 50, 0, 0.9), rgba(20, 20, 40, 0.9));
+            border: 3px solid;
+            border-image: linear-gradient(135deg, #00ff00, #ffd700) 1;
+            border-radius: 15px; 
+            padding: 20px; 
+            width: 240px;
+            max-height: calc(100vh - 80px);
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0, 255, 0, 0.3);
+            backdrop-filter: blur(10px);
+        }
+        
+        .stat { 
+            display: flex; 
+            justify-content: space-between; 
+            margin: 10px 0; 
+            font-size: 14px;
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+        }
+        
+        .stat span:first-child {
+            color: #ffd700;
+            font-weight: 600;
+        }
+        
+        .stat span:last-child {
+            color: #00ff00;
+            font-weight: 700;
+        }
+        
+        .controls { 
+            font-size: 11px; 
+            color: #aaa; 
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 215, 0, 0.2);
+        }
+        
+        .controls strong {
+            color: #ffd700;
+        }
+        
+        .menu-btn {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            padding: 10px 20px;
+            background: linear-gradient(135deg, rgba(0, 50, 0, 0.9), rgba(20, 20, 40, 0.9));
+            border: 2px solid #ffd700;
+            border-radius: 10px;
+            color: #ffd700;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 700;
+            z-index: 1000;
+            transition: all 0.3s;
+            backdrop-filter: blur(10px);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .menu-btn:hover {
+            background: linear-gradient(135deg, rgba(0, 80, 0, 0.9), rgba(30, 30, 50, 0.9));
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(255, 215, 0, 0.5);
+        }
+
+        .pause-btn {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            padding: 10px 20px;
+            background: linear-gradient(135deg, rgba(0, 50, 0, 0.9), rgba(20, 20, 40, 0.9));
+            border: 2px solid #ffd700;
+            border-radius: 10px;
+            color: #ffd700;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 700;
+            z-index: 1000;
+            transition: all 0.3s;
+            backdrop-filter: blur(10px);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .pause-btn:hover {
+            background: linear-gradient(135deg, rgba(0, 80, 0, 0.9), rgba(30, 30, 50, 0.9));
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(255, 215, 0, 0.5);
+        }
+
+        .sound-btn {
+            position: fixed;
+            top: 60px;
+            right: 15px;
+            padding: 8px 16px;
+            background: linear-gradient(135deg, rgba(0, 50, 0, 0.9), rgba(20, 20, 40, 0.9));
+            border: 2px solid #ffd700;
+            border-radius: 10px;
+            color: #ffd700;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 700;
+            z-index: 1000;
+            transition: all 0.3s;
+            backdrop-filter: blur(10px);
+        }
+
+        .sound-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .energy-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 4px;
+            margin: 8px 0;
+            overflow: hidden;
+            border: 1px solid rgba(255, 215, 0, 0.3);
+        }
+        
+        .energy-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff4400, #ffaa00, #00ff00);
+            transition: width 0.3s;
+            border-radius: 4px;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.6);
+        }
+        
+        .ui-title {
+            background: linear-gradient(45deg, #00ff00, #ffd700);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-align: center;
+            font-size: 22px;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px rgba(0, 255, 0, 0.8);
+            font-weight: bold;
+            animation: tribal-float 3s ease-in-out infinite;
+        }
+        
+        .section-divider {
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #ffd700, transparent);
+            margin: 15px 0;
+        }
+        
+        .gameover-container {
+            background: linear-gradient(135deg, rgba(139, 0, 0, 0.9), rgba(20, 20, 40, 0.95));
+            border: 3px solid;
+            border-image: linear-gradient(45deg, #ff0000, #ffd700) 1;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(255, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+        }
+        
+        .gameover-title {
+            background: linear-gradient(45deg, #ff0000, #ffd700);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 42px;
+            margin-bottom: 25px;
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        .score-display {
+            font-size: 18px;
+            margin: 12px 0;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            border-left: 3px solid #ffd700;
+        }
+
+        .touch-controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: none;
+            gap: 10px;
+            z-index: 1000;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-width: 95vw;
+        }
+
+        .touch-btn {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, rgba(0, 50, 0, 0.9), rgba(20, 20, 40, 0.9));
+            border: 2px solid #ffd700;
+            border-radius: 12px;
+            color: #ffd700;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            user-select: none;
+            backdrop-filter: blur(10px);
+            transition: all 0.2s;
+            font-weight: bold;
+        }
+
+        .touch-btn:active {
+            transform: scale(0.95);
+            background: linear-gradient(135deg, rgba(0, 80, 0, 0.9), rgba(30, 30, 50, 0.9));
+            box-shadow: 0 5px 20px rgba(255, 215, 0, 0.5);
+        }
+
+        .touch-row {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .pause-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+            backdrop-filter: blur(5px);
+        }
+
+        .pause-menu {
+            background: linear-gradient(135deg, rgba(0, 50, 0, 0.95), rgba(20, 20, 40, 0.95));
+            border: 3px solid;
+            border-image: linear-gradient(45deg, #00ff00, #ffd700) 1;
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            max-width: 400px;
+        }
+
+        .pause-title {
+            font-size: 42px;
+            background: linear-gradient(45deg, #00ff00, #ffd700);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 30px;
+        }
+
+        .tutorial-container {
+            background: linear-gradient(135deg, rgba(0, 50, 0, 0.95), rgba(20, 20, 40, 0.95));
+            border: 3px solid;
+            border-image: linear-gradient(45deg, #00ff00, #ffd700) 1;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 700px;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+
+        .tutorial-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            border-left: 3px solid #ffd700;
+        }
+
+        .tutorial-section h3 {
+            color: #ffd700;
+            margin-bottom: 10px;
+        }
+
+        .ability-active {
+            animation: ability-flash 1s infinite;
+        }
+        
+        @media (max-width: 768px) {
+            .auth-title, .loading-title { font-size: 36px; }
+            .game-container { 
+                flex-direction: column; 
+                gap: 15px;
+                padding: 55px 8px 140px 8px;
+            }
+            .ui-panel { 
+                width: 95%; 
+                max-width: 300px;
+                max-height: none;
+            }
+            canvas {
+                max-width: 300px;
+                max-height: 50vh;
+            }
+            .menu-btn, .pause-btn {
+                font-size: 11px;
+                padding: 8px 14px;
+            }
+            .gameover-container, .tutorial-container {
+                padding: 25px;
+                max-width: 95%;
+            }
+            .touch-controls {
+                display: flex;
+            }
+        }
+
+        @media (hover: none) and (pointer: coarse) {
+            .touch-controls {
+                display: flex;
+            }
+            .game-container {
+                padding-bottom: 140px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="loading" class="screen">
+        <div class="loading-title">⚡ NeuroTetris ⚡</div>
+        <div class="loading-subtitle">Naija Tech • Global Vision</div>
+        <div class="spinner"></div>
+        <p style="margin-top: 20px; color: #ffd700;">Loading the Future...</p>
+    </div>
+
+    <div id="auth" class="screen hidden">
+        <div class="auth-title">⚡ NeuroTetris ⚡</div>
+        <div class="auth-subtitle">Powered by Nigerian Innovation</div>
+        <div class="auth-container">
+            <div class="tabs">
+                <button class="tab active" onclick="showTab('signin')">Sign In</button>
+                <button class="tab" onclick="showTab('signup')">Sign Up</button>
+                <button class="tab" onclick="showTab('guest')">Guest</button>
+            </div>
+            
+            <div id="signin" class="form">
+                <button class="btn google-btn" onclick="signInGoogle()">🔗 Sign in with Google</button>
+                <div class="divider">or</div>
+                <input type="email" class="input" placeholder="Email" id="signinEmail">
+                <input type="password" class="input" placeholder="Password" id="signinPassword">
+                <button class="btn primary-btn" onclick="signInEmail()">Sign In</button>
+                <div class="info-box">✓ Unlimited levels ✓ IQ test ✓ Full features</div>
+            </div>
+            
+            <div id="signup" class="form hidden">
+                <button class="btn google-btn" onclick="signUpGoogle()">🔗 Sign up with Google</button>
+                <div class="divider">or</div>
+                <input type="text" class="input" placeholder="Name" id="signupName">
+                <input type="email" class="input" placeholder="Email" id="signupEmail">
+                <input type="password" class="input" placeholder="Password" id="signupPassword">
+                <button class="btn primary-btn" onclick="signUpEmail()">Create Account</button>
+                <div class="info-box">Join for unlimited gameplay + AI analysis</div>
+            </div>
+            
+            <div id="guest" class="form hidden">
+                <p style="text-align:center; margin-bottom:15px; color: #ffd700; font-weight: 600;">Try the demo</p>
+                <div class="info-box warning-box">
+                    <strong>Guest Limitations:</strong><br>
+                    ⚠️ Only 2 levels<br>
+                    ⚠️ No IQ assessment<br>
+                    ⚠️ No progress saving<br>
+                    ⚠️ Basic features only
+                </div>
+                <button class="btn guest-btn" onclick="playAsGuest()">Continue as Guest</button>
+                <button class="btn" onclick="showTutorial()" style="background: rgba(0,255,255,0.1); color: #00ffff; border: 2px solid #00ffff; margin-top: 10px;">📖 Tutorial</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="tutorial" class="screen hidden">
+        <div class="tutorial-container">
+            <h2 class="auth-title" style="font-size: 36px; margin-bottom: 20px;">How to Play</h2>
+            
+            <div class="tutorial-section">
+                <h3>🎮 Basic Controls</h3>
+                <p style="line-height: 1.8;">
+                    <strong>← →</strong> or <strong>A D</strong> - Move piece left/right<br>
+                    <strong>↑</strong> or <strong>W</strong> - Rotate piece<br>
+                    <strong>↓</strong> or <strong>S</strong> - Soft drop (faster fall)<br>
+                    <strong>Space</strong> - Hard drop (instant placement)
+                </p>
+            </div>
+
+            <div class="tutorial-section">
+                <h3>⚡ Special Abilities</h3>
+                <p style="line-height: 1.8;">
+                    <strong>Q</strong> - Quantum Mode (20 energy): Creates ghost positions, click to collapse<br>
+                    <strong>R</strong> - Cycle through abilities<br>
+                    <strong>E</strong> - Use selected ability:<br>
+                    • <span style="color: #00ff00;">Gravity Flip</span> (30 energy): Clears bottom row<br>
+                    • <span style="color: #00ffff;">Time Slow</span> (25 energy): Slows game for 5 seconds<br>
+                    • <span style="color: #ff00ff;">Block Fragment</span> (40 energy): Breaks random blocks
+                </p>
+            </div>
+
+            <div class="tutorial-section">
+                <h3>🎯 Gameplay Tips</h3>
+                <p style="line-height: 1.8;">
+                    • Clear lines to gain energy for abilities<br>
+                    • Clear 4 lines at once (Tetris) for bonus points<br>
+                    • Use quantum mode strategically for perfect placement<br>
+                    • Monitor your stress and energy levels<br>
+                    • Speed increases every level - stay focused!
+                </p>
+            </div>
+
+            <div class="tutorial-section">
+                <h3>🧠 Psychology Tracking</h3>
+                <p style="line-height: 1.8;">
+                    The game analyzes your:<br>
+                    • Decision-making speed<br>
+                    • Stress management under pressure<br>
+                    • Strategic planning ability<br>
+                    • Adaptability to increasing difficulty
+                </p>
+            </div>
+
+            <button class="btn primary-btn" onclick="closeTutorial()">Got It!</button>
+        </div>
+    </div>
+
+    <div id="game" class="screen game-container hidden">
+        <button class="menu-btn" onclick="confirmBackToMenu()">🏠 Main Menu</button>
+        <button class="pause-btn" onclick="togglePause()">⏸️ Pause</button>
+        <button class="sound-btn" onclick="toggleSound()">🔊 Sound: ON</button>
+        
+        <canvas id="canvas" width="300" height="600"></canvas>
+        
+        <div class="ui-panel">
+            <div class="ui-title">⚡ NeuroTetris ⚡</div>
+            
+            <div class="stat"><span>Score:</span><span id="score">0</span></div>
+            <div class="stat"><span>Lines:</span><span id="lines">0</span></div>
+            <div class="stat"><span>Level:</span><span id="level">1</span></div>
+            
+            <div class="section-divider"></div>
+            
+            <div class="stat" style="border: none;"><span>Energy:</span><span id="energy">0/100</span></div>
+            <div class="energy-bar">
+                <div class="energy-fill" id="energyBar" style="width: 0%"></div>
+            </div>
+            
+            <div class="section-divider"></div>
+            
+            <div id="psychStats">
+                <div class="stat"><span>Mood:</span><span id="mood">Calm</span></div>
+                <div class="stat"><span>Heart Rate:</span><span id="heartRate">70 BPM</span></div>
+                <div class="stat"><span>Stress:</span><span id="stress">0.3</span></div>
+            </div>
+            
+            <div class="section-divider"></div>
+            
+            <div class="stat" style="border: none;"><span>Ability:</span><span id="currentAbility">Gravity Flip</span></div>
+            <div class="stat"><span></span><span id="abilityStatus" style="color:#00ff00;">Ready</span></div>
+            
+            <div class="controls">
+                <strong>🎮 Controls:</strong><br>
+                A/D or ←/→ - Move<br>
+                W or ↑ - Rotate<br>
+                S or ↓ - Soft Drop<br>
+                Space - Hard Drop<br>
+                Q - Quantum<br>
+                R - Cycle Ability<br>
+                E - Use Ability<br>
+                P - Pause
+            </div>
+        </div>
+
+        <div class="touch-controls" id="touchControls">
+            <div class="touch-row">
+                <div class="touch-btn" data-action="rotate">↻</div>
+                <div class="touch-btn" data-action="quantum">Q</div>
+                <div class="touch-btn" data-action="ability">E</div>
+            </div>
+            <div class="touch-row">
+                <div class="touch-btn" data-action="left">←</div>
+                <div class="touch-btn" data-action="down">↓</div>
+                <div class="touch-btn" data-action="right">→</div>
+                <div class="touch-btn" data-action="drop">⬇</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="pause-overlay" id="pauseOverlay">
+        <div class="pause-menu">
+            <h2 class="pause-title">PAUSED</h2>
+            <button class="btn primary-btn" onclick="togglePause()">Resume Game</button>
+            <button class="btn guest-btn" onclick="showTutorial()">Tutorial</button>
+            <button class="btn" onclick="confirmBackToMenu()" style="background: rgba(255,0,0,0.2); color: #ff6666; border: 2px solid #ff6666;">Quit to Menu</button>
+        </div>
+    </div>
+
+    <div id="gameover" class="screen hidden" style="text-align:center;">
+        <div class="gameover-container">
+            <h2 class="gameover-title">GAME OVER</h2>
+            
+            <div id="guestSummary" class="hidden">
+                <div style="font-size:28px; color:#ffd700; margin:25px 0; font-weight: bold;">
+                    🎮 Demo Complete!
+                </div>
+                <div class="score-display">
+                    Final Score: <span id="finalScore" style="color:#00ff00; font-weight: bold;">0</span>
+                </div>
+                <div class="score-display">
+                    Lines Cleared: <span id="finalLines" style="color:#00ff00; font-weight: bold;">0</span>
+                </div>
+                <div class="score-display">
+                    Level Reached: <span id="finalLevel" style="color:#ffd700; font-weight: bold;">1</span>
+                </div>
+                
+                <div style="background:rgba(255,215,0,0.15); border:2px solid #ffd700; border-radius:12px; padding:25px; margin:30px 0;">
+                    <div style="color:#ffd700; font-size:20px; font-weight:bold; margin-bottom:18px;">
+                        🔓 Unlock Full Experience
+                    </div>
+                    <div style="font-size:14px; line-height:2; text-align:left; margin:10px 0;">
+                        ✓ Unlimited levels (20+)<br>
+                        ✓ Complete IQ assessment<br>
+                        ✓ Detailed psychology analysis<br>
+                        ✓ Interview suitability score<br>
+                        ✓ Cloud save & progress tracking<br>
+                        ✓ Downloadable assessment report
+                    </div>
+                </div>
+                
+                <div style="display:flex; gap:12px; justify-content:center; margin-top:30px; flex-wrap: wrap;">
+                    <button class="btn primary-btn" onclick="signUpFromGameOver()" style="width:auto; padding:14px 28px;">
+                        Create Free Account
+                    </button>
+                    <button class="btn guest-btn" onclick="restartAsGuest()" style="width:auto; padding:14px 28px;">
+                        Play Demo Again
+                    </button>
+                </div>
+            </div>
+            
+            <div id="premiumSummary" class="hidden">
+                <div style="font-size:32px; color:#ffd700; margin:25px 0; font-weight: bold;">
+                    🏆 Assessment Complete!
+                </div>
+                <div class="score-display">
+                    Final Score: <span id="finalScorePremium" style="color:#00ff00; font-weight: bold;">0</span>
+                </div>
+                <div class="score-display">
+                    Lines Cleared: <span id="finalLinesPremium" style="color:#00ff00; font-weight: bold;">0</span>
+                </div>
+                <div class="score-display">
+                    Level Reached: <span id="finalLevelPremium" style="color:#ffd700; font-weight: bold;">1</span>
+                </div>
+                
+                <div style="background:linear-gradient(135deg, rgba(255,215,0,0.15), rgba(0,255,0,0.1)); border:3px solid #ffd700; border-radius:15px; padding:20px; margin:20px 0;">
+                    <div style="color:#ffd700; font-size:20px; font-weight:bold; margin-bottom:15px; text-align:center;">
+                        🧠 Cognitive IQ Assessment
+                    </div>
+                    <div style="text-align:center; margin:15px 0;">
+                        <div style="font-size:48px; font-weight:bold; color:#00ff00;" id="iqScore">100</div>
+                        <div style="font-size:16px; color:#ffd700; margin-top:8px;" id="iqRating">Average</div>
+                    </div>
+                    <div style="font-size:13px; line-height:1.8; text-align:left; margin-top:12px;">
+                        <div>Spatial Reasoning: <span id="spatialScore" style="color:#00ff00; font-weight: bold;">Good</span></div>
+                        <div>Processing Speed: <span id="speedScore" style="color:#00ff00; font-weight: bold;">Average</span></div>
+                        <div>Pattern Recognition: <span id="patternScore" style="color:#00ff00; font-weight: bold;">Developing</span></div>
+                    </div>
+                </div>
+                
+                <div style="background:rgba(0,100,255,0.1); border:2px solid #00ffff; border-radius:12px; padding:20px; margin:20px 0;">
+                    <div style="color:#00ffff; font-size:18px; font-weight:bold; margin-bottom:12px; text-align:center;">
+                        💼 Interview Suitability
+                    </div>
+                    
+                    <div style="text-align:center; margin:12px 0; padding:12px; background:rgba(0,0,0,0.3); border-radius:8px;">
+                        <div style="font-size:13px; color:#ffd700; margin-bottom:5px;">Overall Score</div>
+                        <div style="font-size:32px; font-weight:bold;" id="interviewScore">75</div>
+                        <div style="font-size:14px; margin-top:5px;" id="interviewRating">Good Candidate</div>
+                    </div>
+                    
+                    <div style="font-size:12px; line-height:1.6; text-align:left; margin-top:12px;">
+                        <div style="padding:6px; border-left:3px solid #00ff00; margin:6px 0; background:rgba(0,0,0,0.2);">
+                            <strong style="color:#ffd700;">Decision Making:</strong> 
+                            <span id="decisionMaking" style="color:#00ff00;">Fast & Decisive</span>
+                        </div>
+                        <div style="padding:6px; border-left:3px solid #00ff00; margin:6px 0; background:rgba(0,0,0,0.2);">
+                            <strong style="color:#ffd700;">Stress Management:</strong> 
+                            <span id="stressManagement" style="color:#00ff00;">Excellent</span>
+                        </div>
+                        <div style="padding:6px; border-left:3px solid #00ff00; margin:6px 0; background:rgba(0,0,0,0.2);">
+                            <strong style="color:#ffd700;">Adaptability:</strong> 
+                            <span id="adaptability" style="color:#00ff00;">Highly Adaptable</span>
+                        </div>
+                        <div style="padding:6px; border-left:3px solid #00ff00; margin:6px 0; background:rgba(0,0,0,0.2);">
+                            <strong style="color:#ffd700;">Strategic Thinking:</strong> 
+                            <span id="strategicThinking" style="color:#00ff00;">Strategic</span>
+                        </div>
+                        <div style="padding:6px; border-left:3px solid #00ff00; margin:6px 0; background:rgba(0,0,0,0.2);">
+                            <strong style="color:#ffd700;">Pressure Performance:</strong> 
+                            <span id="pressurePerformance" style="color:#00ff00;">Excellent</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="display:flex; gap:10px; justify-content:center; margin-top:25px; flex-wrap: wrap;">
+                    <button class="btn primary-btn" onclick="restartGame()" style="width:auto; padding:12px 24px;">
+                        Play Again
+                    </button>
+                    <button class="btn guest-btn" onclick="backToMenu()" style="width:auto; padding:12px 24px;">
+                        Main Menu
+                    </button>
+                    <button class="btn" onclick="downloadReport()" style="width:auto; padding:12px 24px; background:rgba(0,255,255,0.2); color:#00ffff; border:2px solid #00ffff;">
+                        📄 Download Report
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const W = 10, H = 20, SIZE = 30;
+        const SHAPES = {
+            I: [['....','####','....','....']],
+            O: [['....', '.##.', '.##.', '....']],
+            T: [['....', '.#..', '###.', '....']],
+            S: [['....', '.##.', '##..', '....']],
+            Z: [['....', '##..', '.##.', '....']],
+            J: [['....', '#...', '###.', '....']],
+            L: [['....', '..#.', '###.', '....']],
+        };
+        const COLORS = {I:'#0ff',O:'#ff0',T:'#80f',S:'#0f0',Z:'#f00',J:'#00f',L:'#fa0'};
+
+        let canvas, ctx, grid = [], piece = null, gameOn = false, isGuest = false;
+        let score = 0, lines = 0, level = 1, fall = 0, delay = 45;
+        let energy = 0, heartRate = 70, stress = 0.3, mood = 'Calm';
+        let currentAbility = 'Gravity Flip', abilityActive = false, abilityTimer = 0;
+        let quantumCollapses = 0, tetrises = 0, keyListener = null;
+        let animationFrameId = null;
+        let isPaused = false;
+        let soundEnabled = true;
+        
+        let decisionSpeed = [], rotationCount = 0, moveCount = 0, dropCount = 0;
+        let errorCount = 0, stressSpikes = 0, adaptabilityScore = 0;
+        let strategicPlanningScore = 0, riskTakingBehavior = 0, frustrationTolerance = 100;
+        let gameStartTime = 0, totalPlayTime = 0, consecutiveMistakes = 0, perfectClears = 0, lastMoveTime = 0;
+
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSound(type) {
+            if (!soundEnabled) return;
+            
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            switch(type) {
+                case 'move':
+                    oscillator.frequency.value = 200;
+                    gainNode.gain.value = 0.1;
+                    oscillator.start();
+                    oscillator.stop(audioContext.currentTime + 0.05);
+                    break;
+                case 'rotate':
+                    oscillator.frequency.value = 300;
+                    gainNode.gain.value = 0.15;
+                    oscillator.start();
+                    oscillator.stop(audioContext.currentTime + 0.08);
+                    break;
+                case 'drop':
+                    oscillator.frequency.value = 150;
+                    gainNode.gain.value = 0.2;
+                    oscillator.start();
+                    oscillator.stop(audioContext.currentTime + 0.1);
+                    break;
+                case 'line':
+                    oscillator.frequency.value = 500;
+                    gainNode.gain.value = 0.25;
+                    oscillator.type = 'square';
+                    oscillator.start();
+                    oscillator.stop(audioContext.currentTime + 0.15);
+                    break;
+                case 'tetris':
+                    oscillator.frequency.value = 800;
+                    gainNode.gain.value = 0.3;
+                    oscillator.type = 'square';
+                    oscillator.start();
+                    oscillator.stop(audioContext.currentTime + 0.3);
+                    break;
+                case 'ability':
+                    oscillator.frequency.value = 600;
+                    gainNode.gain.value = 0.2;
+                    oscillator.type = 'sine';
+                    oscillator.start();
+                    oscillator.stop(audioContext.currentTime + 0.2);
+                    break;
+                case 'gameover':
+                    oscillator.frequency.value = 100;
+                    gainNode.gain.value = 0.3;
+                    oscillator.type = 'sawtooth';
+                    oscillator.start();
+                    oscillator.stop(audioContext.currentTime + 0.5);
+                    break;
+            }
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            document.querySelector('.sound-btn').textContent = soundEnabled ? '🔊 Sound: ON' : '🔇 Sound: OFF';
+            playSound('move');
+        }
+
+        function togglePause() {
+            if (!gameOn) return;
+            
+            isPaused = !isPaused;
+            const overlay = document.getElementById('pauseOverlay');
+            const pauseBtn = document.querySelector('.pause-btn');
+            
+            if (isPaused) {
+                overlay.style.display = 'flex';
+                pauseBtn.textContent = '▶️ Resume';
+            } else {
+                overlay.style.display = 'none';
+                pauseBtn.textContent = '⏸️ Pause';
+                lastMoveTime = Date.now();
+            }
+        }
+
+        function showTutorial() {
+            const wasPaused = isPaused;
+            if (gameOn && !isPaused) {
+                togglePause();
+            }
+            
+            document.getElementById('tutorial').classList.remove('hidden');
+            document.getElementById('auth').classList.add('hidden');
+        }
+
+        function closeTutorial() {
+            document.getElementById('tutorial').classList.add('hidden');
+            if (gameOn) {
+                document.getElementById('game').classList.remove('hidden');
+            } else {
+                document.getElementById('auth').classList.remove('hidden');
+            }
+        }
+
+        class Piece {
+            constructor(type) {
+                this.type = type;
+                this.shape = SHAPES[type][0];
+                this.x = Math.floor(W/2) - 1;
+                this.y = 0;
+                this.isQuantum = false;
+                this.quantumPositions = [];
+            }
+            rotate() {
+                const old = this.shape;
+                const n = this.shape.length;
+                const rotated = Array(n).fill().map(() => Array(n).fill('.'));
+                for(let y = 0; y < n; y++)
+                    for(let x = 0; x < n; x++)
+                        rotated[x][n-1-y] = this.shape[y][x];
+                this.shape = rotated;
+                if(this.collides(0,0)) this.shape = old;
+                else playSound('rotate');
+            }
+            move(dx, dy) {
+                if(!this.collides(dx, dy)) { 
+                    this.x += dx; 
+                    this.y += dy;
+                    if(dx !== 0) playSound('move');
+                    return true; 
+                }
+                return false;
+            }
+            collides(dx, dy) {
+                for(let y = 0; y < this.shape.length; y++)
+                    for(let x = 0; x < this.shape[y].length; x++)
+                        if(this.shape[y][x] === '#') {
+                            const nx = this.x + x + dx, ny = this.y + y + dy;
+                            if(nx < 0 || nx >= W || ny >= H) return true;
+                            if(ny >= 0 && grid[ny][nx]) return true;
+                        }
+                return false;
+            }
+            activateQuantum() {
+                if(!this.isQuantum && energy >= 20) {
+                    this.isQuantum = true;
+                    energy -= 20;
+                    this.quantumPositions = [
+                        {x: this.x - 2, y: this.y},
+                        {x: this.x, y: this.y},
+                        {x: this.x + 2, y: this.y}
+                    ].filter(pos => !this.wouldCollideAt(pos.x, pos.y));
+                    playSound('ability');
+                    updateUI();
+                    return true;
+                }
+                return false;
+            }
+            wouldCollideAt(newX, newY) {
+                for(let y = 0; y < this.shape.length; y++)
+                    for(let x = 0; x < this.shape[y].length; x++)
+                        if(this.shape[y][x] === '#') {
+                            const nx = newX + x, ny = newY + y;
+                            if(nx < 0 || nx >= W || ny >= H) return true;
+                            if(ny >= 0 && grid[ny][nx]) return true;
+                        }
+                return false;
+            }
+            collapseQuantum(targetX) {
+                if(this.isQuantum) {
+                    const validPos = this.quantumPositions.find(pos => 
+                        Math.abs(pos.x - targetX) < 3 && !this.wouldCollideAt(pos.x, pos.y)
+                    );
+                    if(validPos) {
+                        this.x = validPos.x;
+                        this.y = validPos.y;
+                    }
+                    this.isQuantum = false;
+                    this.quantumPositions = [];
+                    quantumCollapses++;
+                    playSound('ability');
+                }
+            }
+        }
+
+        function showScreen(id) {
+            ['loading','auth','game','gameover','tutorial'].forEach(s => document.getElementById(s).classList.add('hidden'));
+            document.getElementById(id).classList.remove('hidden');
+        }
+
+        function showTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.form').forEach(f => f.classList.add('hidden'));
+            event.target.classList.add('active');
+            document.getElementById(tab).classList.remove('hidden');
+        }
+
+        function signInGoogle() { 
+            alert('Google Sign-In requires backend. Continuing as premium user...');
+            isGuest = false; 
+            startGame(); 
+        }
+        
+        function signInEmail() { 
+            const email = document.getElementById('signinEmail').value;
+            const password = document.getElementById('signinPassword').value;
+            if(!email || !password) { alert('Please enter email and password'); return; }
+            isGuest = false; 
+            startGame(); 
+        }
+        
+        function signUpGoogle() { 
+            alert('Google Sign-Up requires backend. Continuing as premium user...');
+            isGuest = false; 
+            startGame(); 
+        }
+        
+        function signUpEmail() { 
+            const name = document.getElementById('signupName').value;
+            const email = document.getElementById('signupEmail').value;
+            const password = document.getElementById('signupPassword').value;
+            if(!name || !email || !password) { alert('Please fill all fields'); return; }
+            isGuest = false; 
+            startGame(); 
+        }
+        
+        function playAsGuest() { 
+            isGuest = true; 
+            startGame(); 
+        }
+
+        function startGame() {
+            if(animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+            
+            if(keyListener) {
+                document.removeEventListener('keydown', keyListener);
+                keyListener = null;
+            }
+            
+            showScreen('game');
+            canvas = document.getElementById('canvas');
+            ctx = canvas.getContext('2d');
+            grid = Array(H).fill().map(() => Array(W).fill(null));
+            score = 0;
+            lines = 0;
+            level = 1;
+            fall = 0;
+            delay = 45;
+            energy = 0;
+            heartRate = 70;
+            stress = 0.3;
+            mood = 'Calm';
+            currentAbility = 'Gravity Flip';
+            abilityActive = false;
+            abilityTimer = 0;
+            quantumCollapses = 0;
+            tetrises = 0;
+            gameOn = true;
+            isPaused = false;
+            
+            gameStartTime = Date.now();
+            lastMoveTime = gameStartTime;
+            decisionSpeed = [];
+            rotationCount = 0;
+            moveCount = 0;
+            dropCount = 0;
+            errorCount = 0;
+            stressSpikes = 0;
+            adaptabilityScore = 0;
+            strategicPlanningScore = 0;
+            riskTakingBehavior = 0;
+            frustrationTolerance = 100;
+            consecutiveMistakes = 0;
+            perfectClears = 0;
+            
+            document.getElementById('score').textContent = '0';
+            document.getElementById('lines').textContent = '0';
+            document.getElementById('level').textContent = '1';
+            document.getElementById('energy').textContent = '0/100';
+            document.getElementById('energyBar').style.width = '0%';
+            document.getElementById('mood').textContent = 'Calm';
+            document.getElementById('heartRate').textContent = '70 BPM';
+            document.getElementById('stress').textContent = '0.3';
+            document.getElementById('currentAbility').textContent = 'Gravity Flip';
+            document.getElementById('pauseOverlay').style.display = 'none';
+            document.querySelector('.pause-btn').textContent = '⏸️ Pause';
+            
+            document.body.style.background = 'linear-gradient(-45deg, #0a4d0a, #1a1a2e, #8b4513, #006400, #1a1a2e)';
+            canvas.style.background = 'linear-gradient(180deg, #000a00, #001100)';
+            canvas.style.boxShadow = '0 10px 40px rgba(0, 255, 0, 0.3)';
+            
+            keyListener = onKey;
+            document.addEventListener('keydown', keyListener);
+            
+            canvas.addEventListener('click', handleCanvasClick);
+            
+            setupTouchControls();
+            
+            spawn();
+            loop();
+        }
+
+        function handleCanvasClick(e) {
+            if(!gameOn || !piece || !piece.isQuantum) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const clickX = Math.floor((e.clientX - rect.left) / (rect.width / W));
+            piece.collapseQuantum(clickX);
+        }
+
+        function setupTouchControls() {
+            const touchBtns = document.querySelectorAll('.touch-btn');
+            touchBtns.forEach(btn => {
+                const clone = btn.cloneNode(true);
+                btn.parentNode.replaceChild(clone, btn);
+            });
+            
+            const newTouchBtns = document.querySelectorAll('.touch-btn');
+            newTouchBtns.forEach(btn => {
+                btn.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    handleTouchAction(btn.dataset.action);
+                });
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    handleTouchAction(btn.dataset.action);
+                });
+            });
+        }
+
+        function handleTouchAction(action) {
+            if(!gameOn || !piece || isPaused) return;
+            
+            const now = Date.now();
+            const timeSinceLastMove = now - lastMoveTime;
+            decisionSpeed.push(timeSinceLastMove);
+            lastMoveTime = now;
+            
+            switch(action) {
+                case 'left':
+                    if(piece.move(-1, 0)) {
+                        moveCount++;
+                    }
+                    break;
+                case 'right':
+                    if(piece.move(1, 0)) {
+                        moveCount++;
+                    }
+                    break;
+                case 'down':
+                    if(piece.move(0, 1)) {
+                        score++;
+                        updateEnergy(1);
+                        dropCount++;
+                    }
+                    break;
+                case 'rotate':
+                    piece.rotate();
+                    rotationCount++;
+                    break;
+                case 'drop':
+                    let dropDistance = 0;
+                    while(piece.move(0, 1)) {
+                        score += 2;
+                        updateEnergy(1);
+                        dropDistance++;
+                    }
+                    if(dropDistance > 10) riskTakingBehavior += 2;
+                    dropCount++;
+                    playSound('drop');
+                    place();
+                    break;
+                case 'quantum':
+                    if(piece.activateQuantum()) {
+                        strategicPlanningScore += 2;
+                    }
+                    break;
+                case 'ability':
+                    useAbility();
+                    break;
+            }
+        }
+
+        function spawn() {
+            const types = Object.keys(SHAPES);
+            piece = new Piece(types[Math.floor(Math.random()*types.length)]);
+            if(piece.collides(0,0)) {
+                gameOn = false;
+                playSound('gameover');
+                showGameOverScreen();
+            }
+        }
+
+        function onKey(e) {
+            if(!gameOn || !piece || isPaused) return;
+            
+            const now = Date.now();
+            const timeSinceLastMove = now - lastMoveTime;
+            decisionSpeed.push(timeSinceLastMove);
+            lastMoveTime = now;
+            
+            let moved = false;
+            
+            switch(e.key) {
+                case 'a': case 'A': case 'ArrowLeft': 
+                    if(piece.move(-1,0)) {
+                        moveCount++;
+                        moved = true;
+                    }
+                    break;
+                case 'd': case 'D': case 'ArrowRight': 
+                    if(piece.move(1,0)) {
+                        moveCount++;
+                        moved = true;
+                    }
+                    break;
+                case 's': case 'S': case 'ArrowDown': 
+                    if(piece.move(0,1)) { 
+                        score++; 
+                        updateEnergy(1); 
+                        dropCount++;
+                        moved = true;
+                    }
+                    break;
+                case 'w': case 'W': case 'ArrowUp': 
+                    piece.rotate(); 
+                    rotationCount++;
+                    moved = true;
+                    break;
+                case ' ': 
+                    e.preventDefault(); 
+                    let dropDistance = 0;
+                    while(piece.move(0,1)) { 
+                        score+=2; 
+                        updateEnergy(1); 
+                        dropDistance++;
+                    } 
+                    if(dropDistance > 10) riskTakingBehavior += 2;
+                    dropCount++;
+                    playSound('drop');
+                    place(); 
+                    moved = true;
+                    break;
+                case 'q': case 'Q': 
+                    if(piece.activateQuantum()) {
+                        strategicPlanningScore += 2;
+                        moved = true;
+                    }
+                    break;
+                case 'r': case 'R': 
+                    cycleAbility(); 
+                    strategicPlanningScore += 1;
+                    moved = true;
+                    break;
+                case 'e': case 'E': 
+                    useAbility(); 
+                    moved = true;
+                    break;
+                case 'p': case 'P':
+                    togglePause();
+                    break;
+            }
+        }
+
+        function cycleAbility() {
+            const abilities = ['Gravity Flip', 'Time Slow', 'Block Fragment'];
+            const idx = abilities.indexOf(currentAbility);
+            currentAbility = abilities[(idx + 1) % abilities.length];
+            document.getElementById('currentAbility').textContent = currentAbility;
+            playSound('move');
+        }
+
+        function useAbility() {
+            const costs = { 'Gravity Flip': 30, 'Time Slow': 25, 'Block Fragment': 40 };
+            const cost = costs[currentAbility];
+            if(energy >= cost && !abilityActive) {
+                energy -= cost;
+                abilityActive = true;
+                abilityTimer = 300;
+                playSound('ability');
+                
+                if(currentAbility === 'Gravity Flip') {
+                    grid[H-1].fill(null);
+                } else if(currentAbility === 'Time Slow') {
+                    delay = Math.min(delay * 3, 135);
+                } else if(currentAbility === 'Block Fragment') {
+                    let removed = 0;
+                    for(let attempt = 0; attempt < 15 && removed < 8; attempt++) {
+                        const rx = Math.floor(Math.random() * W);
+                        const ry = Math.floor(Math.random() * H);
+                        if(grid[ry][rx]) {
+                            grid[ry][rx] = null;
+                            removed++;
+                        }
+                    }
+                }
+                
+                updateUI();
+                document.getElementById('abilityStatus').classList.add('ability-active');
+            }
+        }
+
+        function updateEnergy(amount) {
+            energy = Math.min(100, energy + amount);
+            document.getElementById('energy').textContent = energy + '/100';
+            document.getElementById('energyBar').style.width = energy + '%';
+        }
+
+        function updateAI() {
+            const nearDeath = grid.slice(0, 4).some(row => row.some(c => c));
+            const previousStress = stress;
+            
+            if(nearDeath) {
+                heartRate = Math.min(120, heartRate + 3);
+                stress = Math.min(1.0, stress + 0.05);
+                mood = 'Stressed';
+                if(stress - previousStress > 0.1) stressSpikes++;
+                frustrationTolerance = Math.max(0, frustrationTolerance - 2);
+            } else {
+                heartRate = Math.max(60, heartRate + (Math.random() - 0.5) * 1.5);
+                stress = Math.max(0, stress + (Math.random() - 0.5) * 0.03);
+                mood = stress < 0.3 ? 'Calm' : stress > 0.7 ? 'Stressed' : 'Focused';
+                frustrationTolerance = Math.min(100, frustrationTolerance + 0.5);
+            }
+            
+            document.getElementById('heartRate').textContent = Math.round(heartRate) + ' BPM';
+            document.getElementById('stress').textContent = stress.toFixed(1);
+            document.getElementById('mood').textContent = mood;
+        }
+
+        function updateUI() {
+            const costs = { 'Gravity Flip': 30, 'Time Slow': 25, 'Block Fragment': 40 };
+            const cost = costs[currentAbility];
+            const status = document.getElementById('abilityStatus');
+            
+            if(abilityActive) {
+                status.textContent = 'ACTIVE: ' + Math.ceil(abilityTimer / 60) + 's';
+                status.style.color = '#ffff00';
+            } else if(energy >= cost) {
+                status.textContent = 'Ready';
+                status.style.color = '#00ff00';
+                status.classList.remove('ability-active');
+            } else {
+                status.textContent = 'Need ' + (cost - energy) + ' energy';
+                status.style.color = '#ff0000';
+            }
+        }
+
+        function updateBackground() {
+            const levelColors = [
+                {bg: 'linear-gradient(-45deg, #0a4d0a, #1a1a2e, #8b4513, #006400, #1a1a2e)', canvas: 'linear-gradient(180deg, #000a00, #001100)'},
+                {bg: 'linear-gradient(-45deg, #0a3d5a, #1a1a3e, #4a2a6a, #005a70, #1a1a3e)', canvas: 'linear-gradient(180deg, #000a10, #001120)'},
+                {bg: 'linear-gradient(-45deg, #4a1a5a, #2a1a4e, #6a2a4a, #5a0a70, #2a1a4e)', canvas: 'linear-gradient(180deg, #100010, #200020)'},
+                {bg: 'linear-gradient(-45deg, #5a2a1a, #3e2a1a, #7a3a2a, #6a1a0a, #3e2a1a)', canvas: 'linear-gradient(180deg, #1a0000, #2a0a00)'},
+                {bg: 'linear-gradient(-45deg, #6a0a0a, #4e1a1a, #8a2a2a, #7a0000, #4e1a1a)', canvas: 'linear-gradient(180deg, #200000, #300a0a)'},
+            ];
+            
+            const colorIndex = Math.min(Math.floor((level - 1) / 3), levelColors.length - 1);
+            const colors = levelColors[colorIndex];
+            
+            document.body.style.background = colors.bg;
+            document.body.style.backgroundSize = '400% 400%';
+            canvas.style.background = colors.canvas;
+            
+            const intensity = Math.min(level / 15, 1);
+            canvas.style.boxShadow = `0 10px 40px rgba(255, ${Math.floor(100 * (1 - intensity))}, 0, ${0.3 + intensity * 0.4})`;
+        }
+
+        function place() {
+            for(let y = 0; y < piece.shape.length; y++)
+                for(let x = 0; x < piece.shape[y].length; x++)
+                    if(piece.shape[y][x] === '#' && piece.y + y >= 0)
+                        grid[piece.y + y][piece.x + x] = piece.type;
+            
+            let cleared = 0;
+            for(let y = H-1; y >= 0; y--) {
+                if(grid[y].every(c => c)) {
+                    grid.splice(y, 1);
+                    grid.unshift(Array(W).fill(null));
+                    cleared++;
+                    y++;
+                }
+            }
+            
+            if(cleared) {
+                lines += cleared;
+                score += [0,40,100,300,1200][cleared] * level;
+                level = Math.floor(lines/10) + 1;
+                updateEnergy(cleared * 10);
+                
+                if(cleared === 1) playSound('line');
+                else if(cleared === 4) {
+                    playSound('tetris');
+                    tetrises++;
+                    perfectClears++;
+                    strategicPlanningScore += 5;
+                } else {
+                    playSound('line');
+                }
+                
+                if(level > 5 && cleared >= 2) adaptabilityScore += 3;
+                consecutiveMistakes = 0;
+                
+                if(isGuest && level > 2) {
+                    gameOn = false;
+                    playSound('gameover');
+                    showGameOverScreen();
+                    return;
+                }
+                
+                delay = Math.max(45 * Math.pow(0.85, level-1), 5);
+                updateBackground();
+            } else {
+                const topRows = grid.slice(0, 5).flat().filter(c => c).length;
+                if(topRows > 15) {
+                    consecutiveMistakes++;
+                    errorCount++;
+                    frustrationTolerance = Math.max(0, frustrationTolerance - 5);
+                }
+            }
+            
+            document.getElementById('score').textContent = score;
+            document.getElementById('lines').textContent = lines;
+            document.getElementById('level').textContent = level;
+            
+            updateAI();
+            updateUI();
+            spawn();
+        }
+
+        function showGameOverScreen() {
+            gameOn = false;
+            
+            if(animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+            
+            totalPlayTime = (Date.now() - gameStartTime) / 1000;
+            
+            if(keyListener) {
+                document.removeEventListener('keydown', keyListener);
+                keyListener = null;
+            }
+            
+            showScreen('gameover');
+            
+            if(isGuest) {
+                document.getElementById('guestSummary').classList.remove('hidden');
+                document.getElementById('premiumSummary').classList.add('hidden');
+                document.getElementById('finalScore').textContent = score;
+                document.getElementById('finalLines').textContent = lines;
+                document.getElementById('finalLevel').textContent = level;
+            } else {
+                document.getElementById('guestSummary').classList.add('hidden');
+                document.getElementById('premiumSummary').classList.remove('hidden');
+                document.getElementById('finalScorePremium').textContent = score;
+                document.getElementById('finalLinesPremium').textContent = lines;
+                document.getElementById('finalLevelPremium').textContent = level;
+                calculatePsychologicalProfile();
+            }
+        }
+        
+        function calculatePsychologicalProfile() {
+            const spatialScore = Math.min(100, (lines / Math.max(level, 1)) * 10);
+            const processingSpeed = Math.min(100, level * 8);
+            const patternRecognition = Math.min(100, (score / 100) + (tetrises * 5));
+            const problemSolving = Math.min(100, (strategicPlanningScore * 2) + (adaptabilityScore * 1.5));
+            
+            const cognitiveIQ = Math.round(85 + (spatialScore * 0.25) + (processingSpeed * 0.25) + (patternRecognition * 0.25) + (problemSolving * 0.25));
+            
+            const avgDecisionTime = decisionSpeed.length > 0 ? decisionSpeed.reduce((a, b) => a + b, 0) / decisionSpeed.length : 1000;
+            const decisionMaking = avgDecisionTime < 300 ? 'Fast & Decisive' : avgDecisionTime < 600 ? 'Moderate' : 'Deliberate';
+            const decisionScore = avgDecisionTime < 300 ? 90 : avgDecisionTime < 600 ? 75 : 60;
+            
+            const stressManagement = frustrationTolerance > 70 ? 'Excellent' : frustrationTolerance > 40 ? 'Good' : 'Developing';
+            const stressScore = frustrationTolerance;
+            
+            const adaptability = adaptabilityScore > 20 ? 'Highly Adaptable' : adaptabilityScore > 10 ? 'Adaptable' : 'Developing';
+            const adaptScore = Math.min(100, adaptabilityScore * 3);
+            
+            const abilityUseScore = (rotationCount * 0.5) + (quantumCollapses * 3);
+            const comboScore = (tetrises * 5) + (perfectClears * 3);
+            const planningScore = abilityUseScore + comboScore + (strategicPlanningScore * 2);
+            const strategic = planningScore > 25 ? 'Strategic' : planningScore > 12 ? 'Tactical' : 'Reactive';
+            const stratScore = Math.min(100, planningScore * 2.5);
+            
+            const pressurePerformance = stressSpikes < 3 ? 'Excellent' : stressSpikes < 6 ? 'Good' : 'Sensitive';
+            const pressureScore = Math.max(0, 100 - (stressSpikes * 10));
+            
+            const recovery = errorCount > 0 ? Math.max(0, 100 - (errorCount * 10)) : 100;
+            
+            const interviewScore = Math.round((decisionScore * 0.15) + (stressScore * 0.20) + (adaptScore * 0.20) + (stratScore * 0.15) + (pressureScore * 0.20) + (recovery * 0.10));
+            
+            const efficiency = lines / Math.max(level, 1);
+            document.getElementById('spatialScore').textContent = efficiency > 8 ? 'Excellent' : efficiency > 5 ? 'Good' : 'Developing';
+            document.getElementById('spatialScore').style.color = efficiency > 8 ? '#00ff00' : efficiency > 5 ? '#ffff00' : '#ff9999';
+            
+            document.getElementById('speedScore').textContent = level >= 8 ? 'Fast' : level >= 4 ? 'Average' : 'Methodical';
+            document.getElementById('speedScore').style.color = level >= 8 ? '#00ff00' : level >= 4 ? '#ffff00' : '#ff9999';
+            
+            document.getElementById('patternScore').textContent = score > 5000 ? 'Excellent' : score > 2000 ? 'Good' : 'Developing';
+            document.getElementById('patternScore').style.color = score > 5000 ? '#00ff00' : score > 2000 ? '#ffff00' : '#ff9999';
+            
+            document.getElementById('iqScore').textContent = cognitiveIQ;
+            document.getElementById('iqRating').textContent = cognitiveIQ >= 130 ? 'Very Superior' : cognitiveIQ >= 120 ? 'Superior' : cognitiveIQ >= 110 ? 'High Average' : cognitiveIQ >= 90 ? 'Average' : 'Low Average';
+            
+            document.getElementById('decisionMaking').textContent = decisionMaking;
+            document.getElementById('stressManagement').textContent = stressManagement;
+            document.getElementById('adaptability').textContent = adaptability;
+            document.getElementById('strategicThinking').textContent = strategic;
+            document.getElementById('pressurePerformance').textContent = pressurePerformance;
+            
+            document.getElementById('interviewScore').textContent = interviewScore;
+            document.getElementById('interviewRating').textContent = interviewScore >= 90 ? 'Exceptional Candidate' : interviewScore >= 80 ? 'Strong Candidate' : interviewScore >= 70 ? 'Good Candidate' : interviewScore >= 55 ? 'Average Candidate' : 'Developing';
+            
+            const interviewColor = interviewScore >= 90 ? '#00ff00' : interviewScore >= 80 ? '#7fff00' : interviewScore >= 70 ? '#ffff00' : interviewScore >= 55 ? '#ffaa00' : '#ff9999';
+            document.getElementById('interviewScore').style.color = interviewColor;
+            document.getElementById('interviewRating').style.color = interviewColor;
+        }
+
+        function signUpFromGameOver() {
+            resetGame();
+            showScreen('auth');
+            const tabs = document.querySelectorAll('.tab');
+            const forms = document.querySelectorAll('.form');
+            tabs.forEach(t => t.classList.remove('active'));
+            forms.forEach(f => f.classList.add('hidden'));
+            tabs[1].classList.add('active');
+            document.getElementById('signup').classList.remove('hidden');
+        }
+
+        function restartAsGuest() {
+            resetGame();
+            isGuest = true;
+            startGame();
+        }
+
+        function restartGame() {
+            resetGame();
+            startGame();
+        }
+
+        function backToMenu() {
+            resetGame();
+            showScreen('auth');
+        }
+
+        function confirmBackToMenu() {
+            if(confirm('Return to main menu? Progress will be lost.')) {
+                gameOn = false;
+                if(animationFrameId) {
+                    cancelAnimationFrame(animationFrameId);
+                    animationFrameId = null;
+                }
+                if(keyListener) {
+                    document.removeEventListener('keydown', keyListener);
+                    keyListener = null;
+                }
+                backToMenu();
+            }
+        }
+
+        function resetGame() {
+            score = 0; 
+            lines = 0; 
+            level = 1; 
+            fall = 0; 
+            delay = 45;
+            energy = 0; 
+            heartRate = 70; 
+            stress = 0.3; 
+            mood = 'Calm';
+            currentAbility = 'Gravity Flip'; 
+            abilityActive = false; 
+            abilityTimer = 0;
+            quantumCollapses = 0; 
+            tetrises = 0; 
+            grid = []; 
+            piece = null; 
+            gameOn = false;
+            isPaused = false;
+            
+            decisionSpeed = [];
+            rotationCount = 0;
+            moveCount = 0;
+            dropCount = 0;
+            errorCount = 0;
+            stressSpikes = 0;
+            adaptabilityScore = 0;
+            strategicPlanningScore = 0;
+            riskTakingBehavior = 0;
+            frustrationTolerance = 100;
+            consecutiveMistakes = 0;
+            perfectClears = 0;
+            gameStartTime = 0;
+            totalPlayTime = 0;
+            lastMoveTime = 0;
+            
+            document.body.style.background = 'linear-gradient(-45deg, #0a4d0a, #1a1a2e, #8b4513, #006400, #1a1a2e)';
+            if(canvas) {
+                canvas.style.background = 'linear-gradient(180deg, #000a00, #001100)';
+                canvas.style.boxShadow = '0 10px 40px rgba(0, 255, 0, 0.3)';
+            }
+        }
+        
+        function downloadReport() {
+            const reportData = `
+╔═══════════════════════════════════════════════════════════════╗
+║         NEUROTETRIS PSYCHOLOGICAL ASSESSMENT REPORT           ║
+║                  Powered by Nigerian Innovation               ║
+╚═══════════════════════════════════════════════════════════════╝
+
+Generated: ${new Date().toLocaleString()}
+Play Time: ${Math.floor(totalPlayTime / 60)}m ${Math.floor(totalPlayTime % 60)}s
+
+GAME METRICS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Score: ${score} | Lines: ${lines} | Level: ${level}
+
+COGNITIVE IQ: ${document.getElementById('iqScore').textContent} (${document.getElementById('iqRating').textContent})
+• Spatial: ${document.getElementById('spatialScore').textContent}
+• Speed: ${document.getElementById('speedScore').textContent}  
+• Pattern: ${document.getElementById('patternScore').textContent}
+
+INTERVIEW SCORE: ${document.getElementById('interviewScore').textContent}/100
+Assessment: ${document.getElementById('interviewRating').textContent}
+
+PSYCHOLOGICAL TRAITS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• Decision Making: ${document.getElementById('decisionMaking').textContent}
+• Stress Management: ${document.getElementById('stressManagement').textContent}
+• Adaptability: ${document.getElementById('adaptability').textContent}
+• Strategic Thinking: ${document.getElementById('strategicThinking').textContent}
+• Pressure Performance: ${document.getElementById('pressurePerformance').textContent}
+
+QUANTUM ANALYSIS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• Quantum Collapses: ${quantumCollapses}
+• Tetrises: ${tetrises}
+• Perfect Clears: ${perfectClears}
+
+═══════════════════════════════════════════════════════════════
+          ⚡ NeuroTetris - Naija Tech • Global Vision ⚡
+═══════════════════════════════════════════════════════════════
+            `;
+            
+            const blob = new Blob([reportData], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `NeuroTetris_Report_${Date.now()}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function loop() {
+            if(!gameOn) {
+                if(animationFrameId) {
+                    cancelAnimationFrame(animationFrameId);
+                    animationFrameId = null;
+                }
+                return;
+            }
+
+            if(!isPaused) {
+                fall++;
+                if(fall >= delay) {
+                    if(piece && !piece.move(0,1)) place();
+                    fall = 0;
+                }
+                
+                if(abilityActive) {
+                    abilityTimer--;
+                    if(abilityTimer <= 0) {
+                        abilityActive = false;
+                        if(currentAbility === 'Time Slow') {
+                            delay = Math.max(45 * Math.pow(0.85, level-1), 5);
+                        }
+                        updateUI();
+                    }
+                }
+            }
+            
+            draw();
+            animationFrameId = requestAnimationFrame(loop);
+        }
+
+        function draw() {
+            if(!canvas || !ctx || !gameOn) return;
+            
+            ctx.fillStyle = '#000a00';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.strokeStyle = 'rgba(0, 255, 0, 0.1)';
+            ctx.lineWidth = 1;
+            for(let i = 0; i <= W; i++) {
+                ctx.beginPath();
+                ctx.moveTo(i * SIZE, 0);
+                ctx.lineTo(i * SIZE, H * SIZE);
+                ctx.stroke();
+            }
+            for(let i = 0; i <= H; i++) {
+                ctx.beginPath();
+                ctx.moveTo(0, i * SIZE);
+                ctx.lineTo(W * SIZE, i * SIZE);
+                ctx.stroke();
+            }
+            
+            for(let y = 0; y < H; y++)
+                for(let x = 0; x < W; x++)
+                    if(grid[y][x]) {
+                        ctx.fillStyle = COLORS[grid[y][x]];
+                        ctx.fillRect(x*SIZE, y*SIZE, SIZE, SIZE);
+                        ctx.strokeStyle = '#fff';
+                        ctx.lineWidth = 2;
+                        ctx.strokeRect(x*SIZE, y*SIZE, SIZE, SIZE);
+                    }
+            
+            if(piece) {
+                if(piece.isQuantum && piece.quantumPositions.length > 0) {
+                    ctx.globalAlpha = 0.4;
+                    piece.quantumPositions.forEach(pos => {
+                        ctx.fillStyle = COLORS[piece.type];
+                        for(let y = 0; y < piece.shape.length; y++)
+                            for(let x = 0; x < piece.shape[y].length; x++)
+                                if(piece.shape[y][x] === '#') {
+                                    ctx.fillRect((pos.x+x)*SIZE, (pos.y+y)*SIZE, SIZE, SIZE);
+                                    ctx.strokeStyle = '#fff';
+                                    ctx.lineWidth = 1;
+                                    ctx.strokeRect((pos.x+x)*SIZE, (pos.y+y)*SIZE, SIZE, SIZE);
+                                }
+                    });
+                    ctx.globalAlpha = 1.0;
+                }
+                
+                ctx.fillStyle = COLORS[piece.type];
+                for(let y = 0; y < piece.shape.length; y++)
+                    for(let x = 0; x < piece.shape[y].length; x++)
+                        if(piece.shape[y][x] === '#') {
+                            ctx.fillRect((piece.x+x)*SIZE, (piece.y+y)*SIZE, SIZE, SIZE);
+                            ctx.strokeStyle = piece.isQuantum ? '#ffff00' : '#fff';
+                            ctx.lineWidth = piece.isQuantum ? 3 : 2;
+                            ctx.strokeRect((piece.x+x)*SIZE, (piece.y+y)*SIZE, SIZE, SIZE);
+                        }
+            }
+
+            if(isPaused) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#ffd700';
+                ctx.font = 'bold 32px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('PAUSED', canvas.width / 2, canvas.height / 2);
+            }
+        }
+
+        setTimeout(() => showScreen('auth'), 1500);
+    </script>
+</body>
+</html>
